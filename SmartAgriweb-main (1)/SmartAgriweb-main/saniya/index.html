@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Farmer Assistant</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      background: url('background.png') no-repeat center center fixed;
+      background-size: cover;
+      color: #1f3d2d;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .chat-container {
+      width: min(100%, 1200px);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+      max-height: 90vh;
+    }
+
+    .main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .sidebar {
+      width: 300px;
+      background: rgba(238, 248, 234, 0.8);
+      border-left: 1px solid rgba(208, 226, 200, 0.5);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-left: none;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      background: #3f7d47;
+      color: #f7ffe2;
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-toggle {
+      background: none;
+      border: none;
+      color: #f7ffe2;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .sidebar-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .header {
+      background: #3f7d47;
+      color: #f7ffe2;
+      padding: 16px 20px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header .title {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    .logo {
+      height: 28px;
+      width: 28px;
+      margin-right: 10px;
+      vertical-align: middle;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .header .sensor-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+      margin-right: 12px;
+    }
+    .sensor-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .header .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .audio-btn {
+      background: #f7ffe2;
+      color: #3f7d47;
+      border: 1px solid #98b58b;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .audio-btn:hover {
+      background: #e1f0c1;
+      transform: scale(1.05);
+    }
+    .audio-btn.active {
+      background: #c8f7c5;
+      color: #1b7a1b;
+      box-shadow: 0 0 0 2px #3f7d47;
+    }
+    .audio-btn.speaking {
+      background: #fff3cd;
+      color: #856404;
+      box-shadow: 0 0 0 2px #ffc107;
+      animation: pulse-audio 0.8s infinite alternate;
+    }
+    @keyframes pulse-audio {
+      from { box-shadow: 0 0 0 2px #ffc107; }
+      to   { box-shadow: 0 0 8px 4px #ffc10788; }
+    }
+    .mic-btn {
+      background: #eef8ea;
+      color: #3f7d47;
+      border: 1px solid #98b58b;
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .mic-btn:hover {
+      background: #d4f2cd;
+    }
+    .mic-btn.active {
+      background: #ff5252;
+      color: white;
+      border-color: #ff1744;
+      animation: pulse-mic 1s infinite alternate;
+    }
+    @keyframes pulse-mic {
+      from { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.4); }
+      to { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 82, 82, 0); }
+    }
+    .volume-meter {
+      width: 4px;
+      height: 20px;
+      background: #ddd;
+      margin-left: 4px;
+      border-radius: 2px;
+      overflow: hidden;
+      display: none;
+      position: relative;
+    }
+    .volume-meter-bar {
+      width: 100%;
+      height: 0%;
+      background: #4caf50;
+      position: absolute;
+      bottom: 0;
+      transition: height 0.1s ease;
+    }
+    .mic-btn.active + .volume-meter {
+      display: block;
+    }
+    .header .btn {
+      background: #f7ffe2;
+      color: #3f7d47;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .header .btn:hover {
+      background: #e1f0c1;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(238, 248, 234, 0.5);
+    }
+    .message-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .message-wrapper.user {
+      align-items: flex-end;
+    }
+    .message-wrapper.bot {
+      align-items: flex-start;
+    }
+    .label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #3f7d47;
+      margin: 0 4px;
+    }
+    .bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      line-height: 1.4;
+      animation: fadeInUp 0.2s ease-out;
+      word-wrap: break-word;
+    }
+    .bubble.user {
+      background: #d4f2cd;
+      color: #1f3d2d;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.bot {
+      background: #fff;
+      border: 1px solid #c3d5bb;
+      color: #2c4f31;
+      border-bottom-left-radius: 4px;
+    }
+    .input-area {
+      padding: 12px;
+      border-top: 1px solid rgba(208, 226, 200, 0.5);
+      display: grid;
+      grid-template-columns: auto auto auto 1fr auto;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.5);
+      align-items: center;
+    }
+    .input-area .upload-btn {
+      background: #eef8ea;
+      color: #3f7d47;
+      border: 1px solid #98b58b;
+      border-radius: 8px;
+      padding: 0 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    .input-area .upload-btn:hover {
+      background: #d4f2cd;
+    }
+    .bubble img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 5px;
+      display: block;
+    }
+    .future-upgrade-badge {
+      font-size: 0.65rem;
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 1px 4px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-left: 4px;
+      border: 1px solid #bbdefb;
+    }
+    .input-area input {
+      padding: 10px 12px;
+      border: 1px solid #98b58b;
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+    .input-area button {
+      background: #4f8f43;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .input-area button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes panelPop {
+      from { opacity: 0; transform: translateY(18px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chat-container {
+      animation: panelPop 0.28s ease-out;
+    }
+
+    .note {
+      font-size: 0.86rem;
+      color: #3f562e;
+      padding: 8px 16px;
+      background: rgba(243, 255, 242, 0.6);
+      border-top: 1px solid rgba(212, 233, 214, 0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .history {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: rgba(238, 248, 234, 0.5);
+    }
+
+    .history-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #3f7d47;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .history li {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid #d4f2cd;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history li:hover {
+      background: #d4f2cd;
+      transform: translateX(4px);
+    }
+
+    .delete-history-btn {
+      color: #888;
+      font-size: 1rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      opacity: 0;
+    }
+
+    .history li:hover .delete-history-btn {
+      opacity: 1;
+    }
+
+    .delete-history-btn:hover {
+      color: #d32f2f;
+      background: rgba(211, 47, 47, 0.1);
+    }
+
+    .history-empty {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+      padding: 20px;
+    }
+
+    /* Suggestions */
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 14px 14px 14px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    .suggestion-chip {
+      background: #f0f7ed;
+      border: 1px solid #c3d5bb;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #3f7d47;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .suggestion-chip:hover {
+      background: #d4f2cd;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    .suggestion-chip:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .chat-container {
+        flex-direction: column;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: 200px;
+        border-left: none;
+        border-top: 1px solid rgba(208, 226, 200, 0.5);
+        order: 3;
+      }
+
+      .sidebar.collapsed {
+        height: 40px;
+      }
+
+      .sidebar-header {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+      }
+
+      .history {
+        max-height: 160px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="main-chat">
+      <div class="header">
+        <div class="title">
+          <img src="logo.svg" alt="Logo" class="logo" onerror="this.style.display='none'">
+          Farmer Assistant 🌾
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="window.location.href='welcome.html'">🏠 Home</button>
+        </div>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="input-area">
+        <button class="audio-btn" id="audioBtn" title="Toggle Audio Response" onclick="toggleAudio()">🔊</button>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button class="mic-btn" id="micBtn" title="Speak your question" onclick="toggleMic()">🎙️</button>
+          <div class="volume-meter" id="volumeMeter"><div class="volume-meter-bar" id="volumeBar"></div></div>
+        </div>
+        <input type="file" id="imageInput" accept="image/*" style="display: none;" />
+        <button class="upload-btn" onclick="document.getElementById('imageInput').click()" title="Upload Crop Image">
+          📷
+        </button>
+        <input id="userInput" type="text" placeholder="Ask about crops, soils, weather..." aria-label="Question"/>
+        <button id="sendBtn">Send</button>
+      </div>
+      <div class="suggestions">
+        <div class="suggestion-chip" onclick="useSuggestion('Best crops for summer?')">🌽 Best crops for summer?</div>
+        <div class="suggestion-chip" onclick="useSuggestion('How to improve soil fertility?')">🌾 How to improve soil fertility?</div>
+        <div class="suggestion-chip" onclick="useSuggestion('How to remove pests naturally?')">🐛 How to remove pests naturally?</div>
+        <div class="suggestion-chip" onclick="useSuggestion('What do soil temperature and moisture tell me?')">🌡️ Check soil sensors</div>
+      </div>
+      <div class="note">
+        <span>AI-powered agriculture advice. <span class="future-upgrade-badge">Image Upload (Future Upgrade)</span></span>
+        <span style="font-size: 0.75rem; color: #888;">Powered by You Assistant</span>
+      </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>📜 Chat History</span>
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">◁</button>
+      </div>
+      <div class="history" id="history">
+        <div class="history-title">💬 Recent Questions</div>
+        <div class="history-empty">No history items found.</div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("userInput");
+    const imageInput = document.getElementById("imageInput");
+    const btn = document.getElementById("sendBtn");
+    const audioBtn = document.getElementById("audioBtn");
+    const micBtn = document.getElementById("micBtn");
+
+    const APP_URL = "https://api.mistral.ai/v1/chat/completions";
+    const MODEL = "mistral-large-latest";
+    
+    // Default to demo mode without settings
+    let api_key = "Q9kPJV7dRaZdy3svZcQwTdTh5wFDnGj5";
+
+    // Audio settings
+    let audioEnabled = localStorage.getItem('audioEnabled') === 'true';
+    let currentSpeech = null;
+    if (audioEnabled) audioBtn.classList.add('active');
+
+    // Voice Input (Speech-to-Text)
+    let isListening = false;
+    let recognition = null;
+    let audioContext = null;
+    let analyser = null;
+    let dataArray = null;
+    let animationId = null;
+
+    function toggleMic() {
+      if (isListening && recognition) {
+        recognition.stop();
+        stopListening();
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('Voice recognition is not supported in this browser. Please try Chrome or Edge.');
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-IN'; // Set explicitly for region
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add('active');
+        micBtn.textContent = '🛑';
+        inputEl.placeholder = 'Listening... Speak clearly';
+        startVolumeMeter(); // Start monitoring volume
+        console.log('Speech recognition started');
+      };
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          inputEl.value = finalTranscript;
+        } else if (interimTranscript) {
+          inputEl.value = interimTranscript;
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'no-speech') {
+          alert('No speech was detected. Please make sure your microphone is working and speak again.');
+        } else if (event.error === 'not-allowed') {
+          alert('Microphone access denied. Please allow microphone permissions in your browser address bar.');
+        } else if (event.error === 'network') {
+          alert('Network error detected. Speech recognition requires an internet connection.');
+        } else {
+          alert('Error: ' + event.error + '. Please try again or type your question.');
+        }
+        stopListening();
+      };
+
+      recognition.onend = () => {
+        stopListening();
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        console.error('Error starting recognition:', e);
+        stopListening();
+      }
+    }
+
+    function stopListening() {
+      isListening = false;
+      micBtn.classList.remove('active');
+      micBtn.textContent = '🎙️';
+      inputEl.placeholder = 'Ask about crops, soils, weather...';
+      stopVolumeMeter(); // Stop monitoring volume
+    }
+
+    async function startVolumeMeter() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+
+        const volumeBar = document.getElementById('volumeBar');
+        
+        function updateMeter() {
+          if (!isListening) return;
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / bufferLength;
+          const volume = Math.min(average * 2, 100); // Scale for visibility
+          volumeBar.style.height = volume + '%';
+          
+          if (volume > 30) {
+            volumeBar.style.background = '#4caf50'; // Green - good
+          } else if (volume > 5) {
+            volumeBar.style.background = '#ffeb3b'; // Yellow - low
+          } else {
+            volumeBar.style.background = '#f44336'; // Red - very low/silence
+          }
+          
+          animationId = requestAnimationFrame(updateMeter);
+        }
+        updateMeter();
+      } catch (err) {
+        console.error('Volume meter error:', err);
+      }
+    }
+
+    function stopVolumeMeter() {
+      if (animationId) cancelAnimationFrame(animationId);
+      if (audioContext) audioContext.close();
+      audioContext = null;
+      analyser = null;
+    }
+
+    // Sidebar settings
+    let sidebarCollapsed = false; // Always start expanded
+
+    // Soil sensor data
+    let sensorData = {
+      temperature: 22,
+      moisture: 65
+    };
+
+    // Maintain conversation history
+    let conversationHistory = [];
+    let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggle');
+      
+      sidebarCollapsed = !sidebarCollapsed;
+      localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+      
+      if (sidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+        toggleBtn.textContent = '▷';
+      } else {
+        sidebar.classList.remove('collapsed');
+        toggleBtn.textContent = '◁';
+      }
+    }
+
+    function updateHistoryDisplay() {
+      const historyEl = document.getElementById('history');
+      if (!historyEl) {
+        return;
+      }
+      
+      // Find or create the title
+      let title = historyEl.querySelector('.history-title');
+      if (!title) {
+        title = document.createElement('div');
+        title.className = 'history-title';
+        title.textContent = '💬 Recent Questions';
+        historyEl.appendChild(title);
+      }
+      
+      // Remove all content after the title
+      while (title.nextSibling) {
+        historyEl.removeChild(title.nextSibling);
+      }
+      
+      if (searchHistory.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'history-empty';
+        emptyMsg.textContent = 'No history items found.';
+        historyEl.appendChild(emptyMsg);
+      } else {
+        const historyList = document.createElement('ul');
+        historyList.innerHTML = searchHistory.map((q, idx) => `
+          <li onclick="setInput('${q.replace(/'/g, "\\'")}')">
+            <span>${q}</span>
+            <span class="delete-history-btn" onclick="deleteHistoryItem(${idx}, event)" title="Delete history item">🗑️</span>
+          </li>`).join('');
+        historyEl.appendChild(historyList);
+      }
+    }
+
+    // ── Audio Engine ──────────────────────────────────────────────────────────
+
+    // Strip ALL emoji / non-latin symbols so TTS reads cleanly
+    function stripEmoji(str) {
+      return str
+        .replace(/[\u{1F300}-\u{1FFFF}]/gu, '')   // emoji block
+        .replace(/[\u{2600}-\u{26FF}]/gu, '')       // misc symbols
+        .replace(/[\u{2700}-\u{27BF}]/gu, '')       // dingbats
+        .replace(/\s{2,}/g, ' ')                    // collapse extra spaces
+        .trim();
+    }
+
+    // Pick the best available English voice
+    function getBestVoice() {
+      const voices = window.speechSynthesis.getVoices();
+      // Prefer an English voice
+      return voices.find(v => v.lang.startsWith('en') && v.localService) ||
+             voices.find(v => v.lang.startsWith('en')) ||
+             voices[0] ||
+             null;
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      localStorage.setItem('audioEnabled', audioEnabled);
+
+      if (audioEnabled) {
+        audioBtn.classList.add('active');
+        audioBtn.title = 'Audio ON – click to mute';
+        // Play a short test beep so user knows audio works
+        speakResponse('Audio enabled. I will now read responses aloud.');
+      } else {
+        audioBtn.classList.remove('active');
+        audioBtn.classList.remove('speaking');
+        audioBtn.title = 'Audio OFF – click to enable';
+        window.speechSynthesis.cancel();
+        currentSpeech = null;
+      }
+    }
+
+    function speakResponse(text) {
+      if (!audioEnabled) return;
+
+      // Check browser support
+      if (!('speechSynthesis' in window)) {
+        console.warn('Speech Synthesis not supported in this browser.');
+        return;
+      }
+
+      // Cancel any currently playing speech
+      window.speechSynthesis.cancel();
+
+      // Clean text BEFORE creating the utterance
+      const cleanText = stripEmoji(text);
+      if (!cleanText) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate   = 0.92;
+      utterance.pitch  = 1;
+      utterance.volume = 1;
+
+      // Assign best voice (voices may not be loaded instantly)
+      const assignVoiceAndSpeak = () => {
+        const voice = getBestVoice();
+        if (voice) utterance.voice = voice;
+
+        utterance.onstart = () => {
+          audioBtn.classList.add('speaking');
+          audioBtn.textContent = '🔈';
+        };
+        utterance.onend = () => {
+          audioBtn.classList.remove('speaking');
+          audioBtn.textContent = '🔊';
+          currentSpeech = null;
+        };
+        utterance.onerror = (e) => {
+          console.warn('SpeechSynthesis error:', e.error);
+          audioBtn.classList.remove('speaking');
+          audioBtn.textContent = '🔊';
+          currentSpeech = null;
+        };
+
+        currentSpeech = utterance;
+        window.speechSynthesis.speak(utterance);
+      };
+
+      // If voices aren't loaded yet, wait for them
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.onvoiceschanged = null;
+          assignVoiceAndSpeak();
+        };
+      } else {
+        assignVoiceAndSpeak();
+      }
+    }
+
+    function updateSensorData() {
+      // Keep internal logic if needed for advice, but remove DOM updates for non-existent IDs
+      sensorData.temperature = 18 + Math.random() * 12;
+      sensorData.moisture = 40 + Math.random() * 50;
+    }
+
+    function getSensorAdvice() {
+      let advice = '';
+      const temp = Math.round(sensorData.temperature);
+      const moisture = Math.round(sensorData.moisture);
+      
+      if (moisture < 40) {
+        advice += '⚠️ Soil moisture is low - irrigation recommended. ';
+      } else if (moisture > 80) {
+        advice += '⚠️ Soil moisture is high - reduce irrigation to prevent root rot. ';
+      }
+      
+      if (temp > 30) {
+        advice += 'High soil temperature detected - consider mulching to keep soil cool. ';
+      } else if (temp < 15) {
+        advice += 'Low soil temperature - growth may be slower, wait for warming. ';
+      }
+      
+      return advice;
+    }
+
+    function appendBubble(text, role, imageUrl = null) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "message-wrapper " + role;
+
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = role === "user" ? "👨‍🌾 Farmer" : "🌾 Assistant";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + role;
+      
+      if (text) {
+        const textSpan = document.createElement("span");
+        textSpan.textContent = text;
+        bubble.appendChild(textSpan);
+      }
+
+      if (imageUrl) {
+        const img = document.createElement("img");
+        img.src = imageUrl;
+        bubble.appendChild(img);
+      }
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return bubble;
+    }
+
+    async function sendQuery() {
+      const prompt = inputEl.value.trim();
+      if(!prompt) return;
+
+      appendBubble(prompt, "user");
+      conversationHistory.push({ role: "user", content: prompt });
+
+      if (!searchHistory.includes(prompt)) {
+        searchHistory.push(prompt);
+        localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+        updateHistoryDisplay(); // Update sidebar immediately
+      }
+      
+      inputEl.value = "";
+      btn.disabled = true;
+      updateSensorData(); // Refresh sensor readings
+      const loadingBubble = appendBubble("...", "bot");
+
+      try {
+        let answer = "";
+        if (api_key) {
+          answer = await callMistralAPI();
+        } else {
+          answer = await getMockResponse(prompt);
+        }
+        
+        conversationHistory.push({ role: "assistant", content: answer });
+        loadingBubble.textContent = answer;
+        speakResponse(answer);
+
+      } catch (err) {
+        loadingBubble.textContent = "Error: " + err.message;
+      } finally {
+        btn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    async function callMistralAPI() {
+      const response = await fetch(APP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${api_key}`
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: conversationHistory
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Invalid API Key. Please check your settings.");
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content ?? "No response from AI.";
+    }
+
+    function getMockResponse(query) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const q = query.toLowerCase();
+          const sensorAdvice = getSensorAdvice();
+          
+          if (q.includes("hi") || q.includes("hello")) {
+            resolve("Hello Farmer! How can I help you today with your crops or livestock?");
+          } else if (q.includes("rice") || q.includes("paddy")) {
+            resolve(sensorAdvice + "Rice needs significantly consistently wet soil. Ensure your drainage is good but the field stays saturated during the vegetative stage.");
+          } else if (q.includes("pest") || q.includes("insect")) {
+            resolve("For common pests, I recommend organic neem oil spray or checking for localized infestations before using chemicals. What specific pest are you seeing?");
+          } else if (q.includes("weather") || q.includes("rain")) {
+            resolve("Local weather forecasts suggest moderate rainfall this week. It might be a good time for fertilization if the soil isn't too saturated.");
+          } else if (q.includes("soil") || q.includes("fertilizer") || q.includes("moisture") || q.includes("temperature")) {
+            resolve(sensorAdvice + "Testing your soil pH is the first step. For nitrogen-rich needs, urea or composted manure are great options depending on your crop.");
+          } else if (q.includes("irrigation") || q.includes("water")) {
+            resolve(sensorAdvice + "For irrigation, consider drip systems for water efficiency. Monitor soil moisture levels and avoid overwatering.");
+          } else {
+            resolve(sensorAdvice + "That's an interesting question about farming. As your assistant, I suggest monitoring your crop health daily and consulting local agriculture experts for specific regional advice.");
+          }
+        }, 800);
+      });
+    }
+
+
+
+    function showHistory() {
+      // This function is now deprecated - history is always visible in sidebar
+      // Keeping for backward compatibility
+    }
+
+    function deleteHistoryItem(index, event) {
+      event.stopPropagation(); // Prevent setInput from firing
+      searchHistory.splice(index, 1);
+      localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+      updateHistoryDisplay(); // Refresh sidebar display
+    }
+
+    function setInput(q) {
+      inputEl.value = q;
+      // History is now always visible in sidebar, no need to hide it
+    }
+
+    function useSuggestion(text) {
+      inputEl.value = text;
+      sendQuery();
+    }
+
+    btn.addEventListener("click", sendQuery);
+    inputEl.addEventListener("keypress", ev => { if (ev.key === "Enter") sendQuery(); });
+    // Removed historyBtn event listener - history is now always visible in sidebar
+
+    // Initialize sensor data on page load
+    updateSensorData();
+    // Refresh sensor data every 10 seconds
+    setInterval(updateSensorData, 10000);
+
+    // Initialize sidebar state
+    if (sidebarCollapsed) {
+      document.getElementById('sidebar').classList.add('collapsed');
+      document.getElementById('sidebarToggle').textContent = '▷';
+    }
+
+    // Initialize history display with a small delay to ensure DOM is ready
+    setTimeout(updateHistoryDisplay, 100);
+
+    // Image Upload & Disease Detection Logic
+    function handleImageFile(file) {
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const imageUrl = event.target.result;
+        appendBubble("📷 Uploaded an image for crop / disease analysis.", "user", imageUrl);
+        
+        // Trigger Disease Detection via Vision API
+        const loadingBubble = appendBubble("🔬 Analyzing image — identifying plant, disease, and generating advice...", "bot");
+        btn.disabled = true;
+
+        try {
+          const analysis = await analyzeImage(imageUrl);
+          loadingBubble.innerHTML = analysis; 
+        } catch (err) {
+          loadingBubble.textContent = "Error during analysis: " + err.message;
+        } finally {
+          btn.disabled = false;
+          imageInput.value = ""; // Reset input
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    imageInput.addEventListener("change", (e) => {
+      handleImageFile(e.target.files[0]);
+    });
+
+    // Paste Image Logic for Typewriter/Input area
+    inputEl.addEventListener("paste", (e) => {
+      const items = (e.clipboardData || window.clipboardData).items;
+      for (let item of items) {
+        if (item.type.indexOf("image") === 0) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          handleImageFile(file);
+          break;
+        }
+      }
+    });
+
+    async function analyzeImage(imageUrl) {
+      if (!api_key) {
+        const mockData = await detectDiseaseMock();
+        return `⚠️ <b>API Key Required for Accurate AI Diagnosis</b><br><span style="font-size: 0.85rem; color: #888;">Add your Mistral API Key to get real image analysis. Demo result shown below:</span><br><br>${mockData}`;
+      }
+
+      const systemPrompt = `You are an expert agricultural scientist and plant pathologist with 20+ years of experience in plant disease diagnostics.
+
+When the user uploads any plant, crop, leaf, soil, or farm-related image:
+1. 🌿 IDENTIFY the plant species or crop type visible in the image.
+2. 🔍 DIAGNOSE any visible diseases, deficiencies, pest damage, or abnormalities. Be very specific with the scientific name and common name.
+3. 📊 STATE your confidence level as a percentage and explain what visual symptoms led to this diagnosis.
+4. 💊 PROVIDE a detailed treatment and prevention plan with:
+   - Immediate steps to take
+   - Recommended fungicides / pesticides / fertilizers with specific product types
+   - Cultural/organic alternatives
+   - Preventive measures for future
+5. ⚠️ WARN about any related risks or secondary infections.
+6. ✅ If the crop looks healthy, confirm it and give tips to keep it healthy.
+
+Format your response using emojis, bold headers, and clear line breaks so it's easy to read. Always be helpful, specific, and actionable.`;
+
+      const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${api_key}`
+        },
+        body: JSON.stringify({
+          model: "pixtral-12b-2409",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Please analyze this image and give me a detailed crop/plant disease report." },
+                { type: "image_url", image_url: imageUrl }
+              ]
+            }
+          ],
+          max_tokens: 1024
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Invalid API Key. Please check your Mistral API key.");
+        if (response.status === 429) throw new Error("Rate limit exceeded. Please wait a moment and try again.");
+        throw new Error(`Vision API Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      let content = data.choices?.[0]?.message?.content ?? "No response received from AI.";
+      // Convert markdown-style newlines & bold to basic HTML
+      content = content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>')
+        .replace(/  /g, '&nbsp;&nbsp;');
+      return `<strong>🌿 AI Plant & Disease Analysis</strong><br><br>${content}`;
+    }
+
+    function detectDiseaseMock() {
+      return new Promise((resolve) => {
+        const results = [
+          {
+            disease: "Rice Blast (Magnaporthe oryzae)",
+            confidence: "94%",
+            advice: "Improve water management and avoid excessive nitrogen. Use resistant varieties or apply fungicides like Tricyclazole if infection is severe."
+          },
+          {
+            disease: "Wheat Rust (Puccinia triticina)",
+            confidence: "88%",
+            advice: "Early detection is key. Apply sulfur-based fungicides and ensure proper spacing between plants to reduce humidity."
+          },
+          {
+            disease: "Tomato Early Blight",
+            confidence: "91%",
+            advice: "Remove infected lower leaves. Use mulch to prevent soil splashing onto leaves and water at the base of the plant."
+          },
+          {
+            disease: "Healthy Crop Detected",
+            confidence: "97%",
+            advice: "No immediate threats found. Maintain current fertilization and irrigation schedule. Keep monitoring for pests."
+          }
+        ];
+
+        setTimeout(() => {
+          const res = results[Math.floor(Math.random() * results.length)];
+          const html = `
+            <strong>AI Analysis Result:</strong><br>
+            🔍 Detected: <span style="color: #d32f2f; font-weight: bold;">${res.disease}</span><br>
+            📈 Confidence: ${res.confidence}<br><br>
+            💡 <strong>Advice:</strong> ${res.advice}
+          `;
+          resolve(html);
+        }, 3000); // Simulate processing time
+      });
+    }
+  </script>
+</body>
+</html>

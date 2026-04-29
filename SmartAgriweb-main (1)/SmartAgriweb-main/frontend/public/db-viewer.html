@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SmartAgriWeb — Database Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root{--green-dark:#1a3a1f;--green-mid:#2d6a35;--green-vivid:#3cb554;--green-pale:#d6f0db;--amber:#f5a623;--red:#e74c3c;--blue:#3498db;--bg:#f4f7f4;--card:#fff;--text:#1a2e1d;--muted:#6b8a70;--border:#ddeee0}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+        header{background:linear-gradient(135deg,#1a3a1f,#2d6a35);padding:20px 32px;display:flex;align-items:center;justify-content:space-between}
+        header h1{font-family:'Space Mono',monospace;color:#fff;font-size:18px;letter-spacing:-.5px}
+        header h1 em{color:#7ed497;font-style:normal}
+        header a{color:#7ed497;font-size:13px;text-decoration:none;border:1px solid #7ed497;padding:6px 14px;border-radius:6px}
+        header a:hover{background:#7ed497;color:#1a3a1f}
+        .mode-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;margin:24px 32px 0}
+        .mode-hw{background:#e6f7eb;color:#2d6a35;border:1.5px solid #3cb554}
+        .mode-sim{background:#fff8e1;color:#b26a00;border:1.5px solid #f5a623}
+        .dot{width:8px;height:8px;border-radius:50%;animation:pulse 1.5s infinite}
+        .dot-green{background:#3cb554}.dot-amber{background:#f5a623}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .container{padding:24px 32px}
+        .tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+        .tab{padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:#fff;color:var(--muted);transition:all .2s}
+        .tab.active{background:var(--green-dark);color:#fff;border-color:var(--green-dark)}
+        .tab:hover:not(.active){background:var(--green-pale)}
+        .panel{display:none}.panel.active{display:block}
+        .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.04);margin-bottom:20px}
+        .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+        .card-title{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--green-dark)}
+        .card-count{font-size:12px;color:var(--muted);background:var(--green-pale);padding:3px 10px;border-radius:10px}
+        table{width:100%;border-collapse:collapse;font-size:12.5px}
+        th{text-align:left;padding:8px 12px;background:#f8fdf8;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+        td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#fafffe}
+        .badge{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600}
+        .badge-esp32{background:#e3f2fd;color:#1565c0}
+        .badge-sim{background:#fff8e1;color:#b26a00}
+        .badge-warning{background:#fff8e1;color:#b26a00}
+        .badge-danger{background:#fdecea;color:#c62828}
+        .badge-info{background:#e3f2fd;color:#1565c0}
+        .badge-resolved{background:#f1f1f1;color:#888}
+        .badge-active{background:#e6f7eb;color:#2d6a35}
+        .badge-growing{background:#e6f7eb;color:#2d6a35}
+        .badge-manual{background:#e3f2fd;color:#1565c0}
+        .badge-auto{background:#e8f5e9;color:#2e7d32}
+        .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+        .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+        .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center}
+        .stat-val{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--green-dark)}
+        .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+        .refresh-btn{background:#3cb554;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+        .refresh-btn:hover{background:#2d9e43}
+        .source-esp32{color:#1565c0;font-weight:600}
+        .source-sim{color:#b26a00}
+        .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+        .search-input{padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;width:220px}
+        .search-input:focus{border-color:#3cb554}
+        .last-updated{font-size:11px;color:var(--muted);margin-left:auto}
+        .live-indicator{display:flex;align-items:center;gap:6px;font-size:12px;color:#3cb554;font-weight:600}
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🌱 SmartAgri<em>Web</em> — Database Viewer</h1>
+    <a href="./index.html">← Back to Dashboard</a>
+</header>
+
+<div id="modeBadge" style="margin:20px 32px 0"></div>
+
+<div class="container">
+
+    <!-- Summary Stats -->
+    <div class="stat-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-val" id="statSensors">—</div><div class="stat-label">Sensor Readings</div></div>
+        <div class="stat-card"><div class="stat-val" id="statAlerts">—</div><div class="stat-label">Active Alerts</div></div>
+        <div class="stat-card"><div class="stat-val" id="statIrrigation">—</div><div class="stat-label">Irrigation Logs</div></div>
+        <div class="stat-card"><div class="stat-val" id="statSource">—</div><div class="stat-label">Data Source</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('sensors')">📡 Sensor Readings</div>
+        <div class="tab" onclick="switchTab('alerts')">⚠️ Alerts</div>
+        <div class="tab" onclick="switchTab('irrigation')">💧 Irrigation Log</div>
+        <div class="tab" onclick="switchTab('crops')">🌿 Crop Database</div>
+    </div>
+
+    <!-- Sensor Readings Panel -->
+    <div class="panel active" id="panel-sensors">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">sensor_readings</span>
+                <div style="display:flex;gap:10px;align-items:center">
+                    <span class="live-indicator"><span class="dot dot-green"></span>Live</span>
+                    <button class="refresh-btn" onclick="loadSensors()">↻ Refresh</button>
+                </div>
+            </div>
+            <div class="toolbar">
+                <input class="search-input" id="sensorSearch" placeholder="Filter rows..." oninput="filterTable('sensorTable',this.value)"/>
+                <span class="last-updated" id="sensorUpdated"></span>
+            </div>
+            <div style="overflow-x:auto">
+                <table id="sensorTable">
+                    <thead><tr><th>ID</th><th>Temperature</th><th>Humidity</th><th>Soil Moisture</th><th>Light (Lux)</th><th>Source</th><th>Recorded At</th></tr></thead>
+                    <tbody id="sensorBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Panel -->
+    <div class="panel" id="panel-alerts">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">alerts</span>
+                <button class="refresh-btn" onclick="loadAlerts()">↻ Refresh</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table id="alertTable">
+                    <thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Message</th><th>Status</th><th>Created At</th></tr></thead>
+                    <tbody id="alertBody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Irrigation Panel -->
+    <div class="panel" id="panel-irrigation">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">irrigation_log</span>
+                <button class="refresh-btn" onclick="loadIrrigation()">↻ Refresh</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table id="irrigTable">
+                    <thead><tr><th>ID</th><th>Liters Used</th><th>Liters Wasted</th><th>Crop</th><th>Started By</th><th>Logged At</th></tr></thead>
+                    <tbody id="irrigBody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Crops Panel -->
+    <div class="panel" id="panel-crops">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">crops_full_dataset.json</span>
+                <span class="card-count" id="cropCount">Loading...</span>
+            </div>
+            <div class="toolbar">
+                <input class="search-input" placeholder="Search crops..." oninput="filterTable('cropTable',this.value)"/>
+            </div>
+            <div style="overflow-x:auto">
+                <table id="cropTable">
+                    <thead><tr><th>Key</th><th>Name</th><th>Category</th><th>Season</th><th>Water/Day</th><th>Yield</th><th>Days</th></tr></thead>
+                    <tbody id="cropBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const API = '';
+
+    // ── Tab switching ──
+    function switchTab(name) {
+        document.querySelectorAll('.tab').forEach((t,i)=>{
+            t.classList.toggle('active', ['sensors','alerts','irrigation','crops'][i]===name);
+        });
+        document.querySelectorAll('.panel').forEach(p=> p.classList.remove('active'));
+        document.getElementById('panel-'+name).classList.add('active');
+        if(name==='sensors') loadSensors();
+        if(name==='alerts')  loadAlerts();
+        if(name==='irrigation') loadIrrigation();
+        if(name==='crops')   loadCrops();
+    }
+
+    // ── Filter table rows ──
+    function filterTable(tableId, query) {
+        const q = query.toLowerCase();
+        document.querySelectorAll('#'+tableId+' tbody tr').forEach(row=>{
+            row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    // ── Load mode badge + stats ──
+    async function loadStatus() {
+        try {
+            const r = await fetch('/api/sensors/status');
+            const d = await r.json();
+            const badge = document.getElementById('modeBadge');
+            if(d.mode==='hardware'){
+                badge.innerHTML=`<span class="mode-badge mode-hw"><span class="dot dot-green"></span>🔧 HARDWARE MODE — Reading real ESP32 sensor data</span>`;
+                document.getElementById('statSource').textContent='ESP32';
+            } else {
+                badge.innerHTML=`<span class="mode-badge mode-sim"><span class="dot dot-amber"></span>🖥️ SIMULATION MODE — Using generated data</span>`;
+                document.getElementById('statSource').textContent='Simulated';
+            }
+        } catch(e){}
+    }
+
+    // ── Sensor Readings ──
+    async function loadSensors() {
+        try {
+            const r = await fetch('/api/db/sensors');
+            const rows = await r.json();
+            document.getElementById('statSensors').textContent = rows.length;
+            const tbody = document.getElementById('sensorBody');
+            if(!rows.length){ tbody.innerHTML='<tr><td colspan="7" class="empty">No readings yet</td></tr>'; return; }
+            tbody.innerHTML = rows.slice(0,100).map(r=>`
+        <tr>
+          <td>${r.id}</td>
+          <td><b>${r.temperature}°C</b></td>
+          <td>${r.humidity}%</td>
+          <td>${r.soil_moisture}%</td>
+          <td>${r.light_lux || 0}</td>
+          <td><span class="badge badge-${r.source==='esp32'?'esp32':'sim'}">${r.source}</span></td>
+          <td>${r.recorded_at}</td>
+        </tr>`).join('');
+            document.getElementById('sensorUpdated').textContent = 'Updated: '+new Date().toLocaleTimeString();
+        } catch(e){ document.getElementById('sensorBody').innerHTML='<tr><td colspan="7" class="empty">Error loading data</td></tr>'; }
+    }
+
+    // ── Alerts ──
+    async function loadAlerts() {
+        try {
+            const r = await fetch('/api/db/alerts');
+            const rows = await r.json();
+            document.getElementById('statAlerts').textContent = rows.filter(r=>!r.resolved).length;
+            const tbody = document.getElementById('alertBody');
+            if(!rows.length){ tbody.innerHTML='<tr><td colspan="6" class="empty">No alerts</td></tr>'; return; }
+            tbody.innerHTML = rows.map(r=>`
+        <tr>
+          <td>${r.id}</td>
+          <td><span class="badge badge-${r.type}">${r.type}</span></td>
+          <td><b>${r.title}</b></td>
+          <td>${r.message}</td>
+          <td><span class="badge badge-${r.resolved?'resolved':'active'}">${r.resolved?'Resolved':'Active'}</span></td>
+          <td>${r.created_at}</td>
+        </tr>`).join('');
+        } catch(e){}
+    }
+
+    // ── Irrigation Log ──
+    async function loadIrrigation() {
+        try {
+            const r = await fetch('/api/db/irrigation');
+            const rows = await r.json();
+            document.getElementById('statIrrigation').textContent = rows.length;
+            const tbody = document.getElementById('irrigBody');
+            if(!rows.length){ tbody.innerHTML='<tr><td colspan="6" class="empty">No irrigation logs</td></tr>'; return; }
+            tbody.innerHTML = rows.map(r=>`
+        <tr>
+          <td>${r.id}</td>
+          <td><b>${r.liters_used} L</b></td>
+          <td>${r.liters_wasted || 0} L</td>
+          <td>${r.crop_key || '—'}</td>
+          <td><span class="badge badge-${r.started_by}">${r.started_by}</span></td>
+          <td>${r.logged_at}</td>
+        </tr>`).join('');
+        } catch(e){}
+    }
+
+    // ── Crop Dataset ──
+    async function loadCrops() {
+        try {
+            const r = await fetch('/api/db/crops');
+            const rows = await r.json();
+            document.getElementById('cropCount').textContent = rows.length + ' crops';
+            const tbody = document.getElementById('cropBody');
+            tbody.innerHTML = rows.map(c=>`
+        <tr>
+          <td><code>${c.key}</code></td>
+          <td>${c.icon} <b>${c.name}</b></td>
+          <td>${c.category}</td>
+          <td>${c.season}</td>
+          <td>${c.water}</td>
+          <td>${c.yield}</td>
+          <td>${c.days}</td>
+        </tr>`).join('');
+        } catch(e){}
+    }
+
+    // ── Init ──
+    loadStatus();
+    loadSensors();
+    setInterval(loadSensors, 5000);  // auto-refresh sensors every 5s
+</script>
+</body>
+</html>

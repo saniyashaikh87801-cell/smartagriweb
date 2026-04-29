@@ -1,0 +1,56 @@
+{
+  "sandy": {
+    "name": "Sandy Soil",
+    "description": "Fast draining, low nutrients, warms quickly",
+    "ph_range": "5.5-7.0",
+    "water_retention": "low",
+    "best_crops": ["carrot","potato","watermelon","peanut","strawberry"],
+    "irrigation_freq": "high",
+    "tips": ["Add organic matter","Irrigate frequently","Use slow-release fertilizers"]
+  },
+  "clay": {
+    "name": "Clay Soil",
+    "description": "High nutrients, poor drainage, slow to warm",
+    "ph_range": "6.0-7.5",
+    "water_retention": "high",
+    "best_crops": ["rice","wheat","corn","sugarcane","broccoli"],
+    "irrigation_freq": "low",
+    "tips": ["Add sand or grit for drainage","Avoid overwatering","Till in autumn"]
+  },
+  "loamy": {
+    "name": "Loamy Soil",
+    "description": "Balanced texture, excellent for most crops",
+    "ph_range": "6.0-7.0",
+    "water_retention": "medium",
+    "best_crops": ["tomato","corn","wheat","soybean","pepper","onion"],
+    "irrigation_freq": "medium",
+    "tips": ["Ideal all-purpose soil","Maintain organic matter","Test pH annually"]
+  },
+  "silty": {
+    "name": "Silty Soil",
+    "description": "High fertility, retains moisture well",
+    "ph_range": "6.0-7.0",
+    "water_retention": "medium-high",
+    "best_crops": ["wheat","corn","spinach","onion","garlic"],
+    "irrigation_freq": "medium",
+    "tips": ["Risk of compaction","Avoid heavy machinery when wet","Add organic matter"]
+  },
+  "peaty": {
+    "name": "Peaty Soil",
+    "description": "High organic matter, moisture retentive, acidic",
+    "ph_range": "4.5-6.0",
+    "water_retention": "very high",
+    "best_crops": ["blueberry","potato","rice","spinach"],
+    "irrigation_freq": "low",
+    "tips": ["Lime to raise pH","Excellent for root vegetables","May need drainage channels"]
+  },
+  "chalky": {
+    "name": "Chalky Soil",
+    "description": "Alkaline, stony, free draining",
+    "ph_range": "7.5-8.5",
+    "water_retention": "low",
+    "best_crops": ["wheat","barley","spinach","cabbage","corn"],
+    "irrigation_freq": "high",
+    "tips": ["Add sulfur to reduce pH","Irrigate frequently","Choose alkaline-tolerant crops"]
+  }
+}

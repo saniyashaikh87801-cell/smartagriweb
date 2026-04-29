@@ -1,0 +1,66 @@
+{
+  "rules": [
+    {
+      "id": "R001",
+      "name": "Morning Irrigation Preferred",
+      "condition": "time_of_day == 'morning'",
+      "action": "irrigate",
+      "reason": "Morning irrigation reduces evaporation loss by up to 30%",
+      "priority": "high"
+    },
+    {
+      "id": "R002",
+      "name": "Skip if Rain Expected",
+      "condition": "rain_expected == true",
+      "action": "skip",
+      "reason": "Avoid overwatering and waterlogging",
+      "priority": "high"
+    },
+    {
+      "id": "R003",
+      "name": "Emergency Irrigation",
+      "condition": "soil_moisture < 20",
+      "action": "irrigate_immediately",
+      "reason": "Critical soil moisture — crop stress risk",
+      "priority": "critical"
+    },
+    {
+      "id": "R004",
+      "name": "Stop Over-irrigation",
+      "condition": "soil_moisture > 80",
+      "action": "stop_irrigation",
+      "reason": "Soil is waterlogged — risk of root rot",
+      "priority": "critical"
+    },
+    {
+      "id": "R005",
+      "name": "High Temperature Boost",
+      "condition": "temperature > 35 AND soil_moisture < 50",
+      "action": "increase_irrigation_by_20pct",
+      "reason": "High temperature increases evapotranspiration",
+      "priority": "medium"
+    },
+    {
+      "id": "R006",
+      "name": "Cool Weather Reduction",
+      "condition": "temperature < 15",
+      "action": "reduce_irrigation_by_30pct",
+      "reason": "Cool temperatures reduce crop water demand",
+      "priority": "medium"
+    },
+    {
+      "id": "R007",
+      "name": "Optimal Conditions",
+      "condition": "soil_moisture >= 35 AND soil_moisture <= 65",
+      "action": "maintain_schedule",
+      "reason": "Soil moisture is in optimal range",
+      "priority": "low"
+    }
+  ],
+  "default_schedule": {
+    "frequency": "daily",
+    "preferred_time": "06:00",
+    "duration_minutes": 30,
+    "liters_per_session": 50
+  }
+}
